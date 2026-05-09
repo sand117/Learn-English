@@ -1,0 +1,17 @@
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Build (giữ lại build/web để deploy GitHub Pages)
+build/flutter_assets/
+build/native_hooks/
+build/*.cache.dill.track.dill
+build/*.stamp
+build/*.json
+
+# IDE
+.idea/
+.vscode/
+*.iml

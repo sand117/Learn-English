@@ -1,0 +1,367 @@
+import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../models/vocabulary_item.dart';
+import '../services/storage_service.dart';
+import '../utils/constants.dart';
+import '../widgets/vocabulary_card.dart';
+import 'add_screen.dart';
+import 'detail_screen.dart';
+import 'review_screen.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _search = '';
+  String _typeFilter = 'all';
+  String _categoryFilter = 'all';
+  bool _showMastered = false;
+  bool _showFavoritesOnly = false;
+  int _sessionSize = 0; // 0 = tất cả
+
+  static const _types = ['all', 'word', 'phrase', 'idiom', 'sentence'];
+  static const _typeLabels = {
+    'all': 'Tất cả',
+    'word': 'Từ',
+    'phrase': 'Cụm từ',
+    'idiom': 'Idiom',
+    'sentence': 'Câu',
+  };
+
+  List<VocabularyItem> _filter(List<VocabularyItem> items) {
+    return items.where((item) {
+      if (!_showMastered && item.mastered) return false;
+      if (_showFavoritesOnly && !item.favorite) return false;
+      if (_typeFilter != 'all' && item.type != _typeFilter) return false;
+      if (_categoryFilter != 'all' && item.category != _categoryFilter)
+        return false;
+      if (_search.isNotEmpty) {
+        final q = _search.toLowerCase();
+        return item.content.toLowerCase().contains(q) ||
+            item.meaning.toLowerCase().contains(q);
+      }
+      return true;
+    }).toList();
+  }
+
+  void _startReview(BuildContext context, int due) {
+    final count = (_sessionSize == 0 || _sessionSize > due) ? due : _sessionSize;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ReviewScreen(maxCount: count)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      body: ValueListenableBuilder(
+        valueListenable: Hive.box('vocabulary').listenable(),
+        builder: (context, _, __) {
+          final all = StorageService.getAll();
+          final due = StorageService.dueCount;
+          final mastered = StorageService.masteredCount;
+          final favorites = all.where((i) => i.favorite).length;
+          final filtered = _filter(all);
+
+          // Hiện tất cả kCategories + custom categories
+          final usedCats = StorageService.getCategories().toSet();
+          final allCats = [
+            ...kCategories,
+            ...usedCats.where((c) => !kCategories.contains(c)),
+          ];
+          final categories = ['all', ...allCats];
+
+          return CustomScrollView(
+            slivers: [
+              // App bar — title tách riêng tránh đè stats
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 140,
+                backgroundColor: primary,
+                foregroundColor: Colors.white,
+                title: const Text('Learn English',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                flexibleSpace: FlexibleSpaceBar(
+                  background: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 56, 0, 8),
+                      child: LayoutBuilder(
+                        builder: (_, constraints) {
+                          if (constraints.maxWidth < 100 || constraints.maxHeight < 55) {
+                            return const SizedBox.shrink();
+                          }
+                          return Row(
+                            children: [
+                              Expanded(child: _StatItem('Tổng', '${all.length}', Icons.library_books, Colors.white)),
+                              Expanded(child: _StatItem('Cần ôn', '$due', Icons.schedule, due > 0 ? Colors.orangeAccent : Colors.white70)),
+                              Expanded(child: _StatItem('Đã thuộc', '$mastered', Icons.check_circle, Colors.greenAccent)),
+                              Expanded(child: _StatItem('Yêu thích', '$favorites', Icons.star, Colors.amberAccent)),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                actions: [
+                  IconButton(
+                    icon: Icon(_showFavoritesOnly
+                        ? Icons.star
+                        : Icons.star_border),
+                    tooltip: _showFavoritesOnly
+                        ? 'Đang lọc yêu thích'
+                        : 'Chỉ yêu thích',
+                    color: _showFavoritesOnly ? Colors.amber : Colors.white,
+                    onPressed: () =>
+                        setState(() => _showFavoritesOnly = !_showFavoritesOnly),
+                  ),
+                  IconButton(
+                    icon: Icon(_showMastered
+                        ? Icons.visibility
+                        : Icons.visibility_off),
+                    tooltip:
+                        _showMastered ? 'Ẩn đã thuộc' : 'Hiện đã thuộc',
+                    onPressed: () =>
+                        setState(() => _showMastered = !_showMastered),
+                  ),
+                ],
+              ),
+
+              // Review banner + session size
+              if (due > 0)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => _startReview(context, due),
+                          icon: const Icon(Icons.play_arrow),
+                          label: Text(
+                            'Ôn tập ngay — ${(_sessionSize == 0 || _sessionSize > due) ? due : _sessionSize} từ',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Text('Số từ/lần:',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600)),
+                            const SizedBox(width: 8),
+                            ...[5, 10, 20, 0].map((n) {
+                              final label = n == 0 ? 'Tất cả' : '$n';
+                              final selected = _sessionSize == n;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: ChoiceChip(
+                                  label: Text(label),
+                                  selected: selected,
+                                  onSelected: (_) =>
+                                      setState(() => _sessionSize = n),
+                                  selectedColor:
+                                      Colors.orange.shade100,
+                                  labelStyle: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: selected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: selected
+                                        ? Colors.orange.shade800
+                                        : Colors.grey.shade700,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Search bar
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Tìm kiếm từ...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _search.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () =>
+                                  setState(() => _search = ''))
+                          : null,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    onChanged: (v) => setState(() => _search = v),
+                  ),
+                ),
+              ),
+
+              // Type filter — tap lại để deselect
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 48,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    itemCount: _types.length,
+                    itemBuilder: (_, i) {
+                      final t = _types[i];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(_typeLabels[t]!),
+                          selected: _typeFilter == t,
+                          onSelected: (selected) => setState(
+                              () => _typeFilter = selected ? t : 'all'),
+                          selectedColor: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              // Category filter — tất cả kCategories, tap lại để deselect
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 48,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    itemCount: categories.length,
+                    itemBuilder: (_, i) {
+                      final c = categories[i];
+                      final label = c == 'all' ? 'Tất cả chủ đề' : c;
+                      final hasItems = c == 'all' ||
+                          usedCats.contains(c);
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(label),
+                          selected: _categoryFilter == c,
+                          onSelected: (selected) => setState(
+                              () => _categoryFilter = selected ? c : 'all'),
+                          selectedColor: Colors.teal.shade100,
+                          labelStyle: TextStyle(
+                            fontSize: 12,
+                            color: _categoryFilter == c
+                                ? Colors.teal.shade800
+                                : hasItems
+                                    ? null
+                                    : Colors.grey.shade400,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              // List
+              filtered.isEmpty
+                  ? SliverFillRemaining(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.library_books_outlined,
+                                size: 64, color: Colors.grey.shade300),
+                            const SizedBox(height: 16),
+                            Text(
+                              all.isEmpty
+                                  ? 'Chưa có từ nào\nNhấn + để thêm từ mới'
+                                  : 'Không tìm thấy từ nào',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: Colors.grey.shade500, height: 1.6),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (_, i) => VocabularyCard(
+                            item: filtered[i],
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      DetailScreen(item: filtered[i])),
+                            ),
+                          ),
+                          childCount: filtered.length,
+                        ),
+                      ),
+                    ),
+            ],
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const AddScreen())),
+        icon: const Icon(Icons.add),
+        label: const Text('Thêm từ'),
+      ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  const _StatItem(this.label, this.value, this.icon, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 16),
+        const SizedBox(height: 2),
+        Text(value,
+            style: TextStyle(
+                color: color, fontWeight: FontWeight.bold, fontSize: 18)),
+        Text(label,
+            style: const TextStyle(color: Colors.white70, fontSize: 10)),
+      ],
+    );
+  }
+}

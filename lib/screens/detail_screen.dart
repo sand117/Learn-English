@@ -34,15 +34,15 @@ class _DetailScreenState extends State<DetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Xoá từ?'),
-        content: Text('Xoá "${_item.content}" khỏi danh sách?'),
+        title: const Text('Delete?'),
+        content: Text('Remove "${_item.content}" from your list?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Huỷ')),
+              child: const Text('Cancel')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Xoá', style: TextStyle(color: Colors.red))),
+              child: const Text('Delete', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -67,7 +67,7 @@ class _DetailScreenState extends State<DetailScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Chi tiết'),
+        title: const Text('Detail'),
         backgroundColor: primary,
         foregroundColor: Colors.white,
         actions: [
@@ -76,7 +76,7 @@ class _DetailScreenState extends State<DetailScreen> {
               _item.favorite ? Icons.star : Icons.star_border,
               color: _item.favorite ? Colors.amber : Colors.white,
             ),
-            tooltip: _item.favorite ? 'Bỏ yêu thích' : 'Thêm yêu thích',
+            tooltip: _item.favorite ? 'Remove from favorites' : 'Add to favorites',
             onPressed: () async {
               _item.favorite = !_item.favorite;
               await StorageService.save(_item);
@@ -131,7 +131,7 @@ class _DetailScreenState extends State<DetailScreen> {
                         Icon(Icons.check_circle,
                             color: Colors.green.shade400, size: 16),
                         const SizedBox(width: 4),
-                        Text('Đã thuộc',
+                        Text('Mastered',
                             style: TextStyle(
                                 color: Colors.green.shade600,
                                 fontWeight: FontWeight.w600)),
@@ -159,7 +159,7 @@ class _DetailScreenState extends State<DetailScreen> {
             if (_item.imageUrl.isNotEmpty)
               _Section(
                 icon: Icons.image_outlined,
-                title: 'Hình ảnh',
+                title: 'Image',
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
@@ -171,7 +171,7 @@ class _DetailScreenState extends State<DetailScreen> {
                       height: 60,
                       color: Colors.grey.shade100,
                       child: Center(
-                        child: Text('Không tải được ảnh',
+                        child: Text('Failed to load image',
                             style:
                                 TextStyle(color: Colors.grey.shade500)),
                       ),
@@ -183,7 +183,7 @@ class _DetailScreenState extends State<DetailScreen> {
             if (_item.meaning.isNotEmpty)
               _Section(
                   icon: Icons.translate,
-                  title: 'Nghĩa',
+                  title: 'Meaning',
                   child: Text(_item.meaning,
                       style:
                           const TextStyle(fontSize: 16, height: 1.5))),
@@ -191,7 +191,7 @@ class _DetailScreenState extends State<DetailScreen> {
             if (_item.example.isNotEmpty)
               _Section(
                 icon: Icons.format_quote,
-                title: 'Ví dụ',
+                title: 'Example',
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
@@ -210,11 +210,11 @@ class _DetailScreenState extends State<DetailScreen> {
             if (_item.audioUrl.isNotEmpty)
               _Section(
                 icon: Icons.volume_up,
-                title: 'Âm thanh',
+                title: 'Audio',
                 child: OutlinedButton.icon(
                   onPressed: () => launchUrl(Uri.parse(_item.audioUrl)),
                   icon: const Icon(Icons.play_circle_outline),
-                  label: const Text('Nghe phát âm'),
+                  label: const Text('Listen'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.primary,
                   ),
@@ -238,28 +238,27 @@ class _DetailScreenState extends State<DetailScreen> {
             if (_item.source.isNotEmpty)
               _Section(
                   icon: Icons.source,
-                  title: 'Nguồn',
+                  title: 'Source',
                   child: Text(_item.source,
                       style: const TextStyle(fontSize: 14))),
 
-            // SRS stats
             _Section(
               icon: Icons.analytics_outlined,
-              title: 'Lịch ôn tập',
+              title: 'Review Schedule',
               child: Column(
                 children: [
-                  _StatRow('Ngày lưu',
+                  _StatRow('Added',
                       _dateFmt.format(_item.createdAt)),
-                  _StatRow('Ôn tiếp theo',
+                  _StatRow('Next Review',
                       SrsService.nextReviewText(_item)),
-                  _StatRow('Đã ôn',
-                      '${_item.repetitions} lần'),
-                  _StatRow('Độ dễ',
+                  _StatRow('Reviewed',
+                      '${_item.repetitions}x'),
+                  _StatRow('Ease Factor',
                       _item.easeFactor.toStringAsFixed(2)),
-                  _StatRow('Chu kỳ hiện tại',
-                      '${_item.interval} ngày'),
+                  _StatRow('Interval',
+                      '${_item.interval} day(s)'),
                   if (_item.lastReview != null)
-                    _StatRow('Lần ôn cuối',
+                    _StatRow('Last Review',
                         _dateFmt.format(_item.lastReview!)),
                 ],
               ),
@@ -276,8 +275,8 @@ class _DetailScreenState extends State<DetailScreen> {
                     ? Icons.remove_circle_outline
                     : Icons.check_circle_outline),
                 label: Text(_item.mastered
-                    ? 'Bỏ đánh dấu đã thuộc'
-                    : 'Đánh dấu đã thuộc'),
+                    ? 'Unmark as Mastered'
+                    : 'Mark as Mastered'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor:
                       _item.mastered ? Colors.red : Colors.green,
@@ -391,10 +390,10 @@ class _TypeBadge extends StatelessWidget {
   const _TypeBadge({required this.type});
 
   static const _labels = {
-    'word': 'Từ',
-    'phrase': 'Cụm từ',
+    'word': 'Word',
+    'phrase': 'Phrase',
     'idiom': 'Idiom',
-    'sentence': 'Câu',
+    'sentence': 'Sentence',
   };
   static const _colors = {
     'word': Color(0xFF3F51B5),

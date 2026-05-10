@@ -26,16 +26,16 @@ class _AddScreenState extends State<AddScreen> {
   final _imageCtrl = TextEditingController();
 
   String _type = 'word';
-  String _category = 'Tổng hợp';
+  String _category = 'General';
   bool _saving = false;
   bool _showIpaPicker = false;
 
   static const _types = ['word', 'phrase', 'idiom', 'sentence'];
   static const _typeLabels = {
-    'word': 'Từ',
-    'phrase': 'Cụm từ',
+    'word': 'Word',
+    'phrase': 'Phrase',
     'idiom': 'Idiom',
-    'sentence': 'Câu',
+    'sentence': 'Sentence',
   };
 
   @override
@@ -88,21 +88,21 @@ class _AddScreenState extends State<AddScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Thêm chủ đề mới'),
+        title: const Text('Add new topic'),
         content: TextField(
           controller: _customCategoryCtrl,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Tên chủ đề...'),
+          decoration: const InputDecoration(hintText: 'Topic name...'),
           textCapitalization: TextCapitalization.sentences,
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Huỷ')),
+              child: const Text('Cancel')),
           TextButton(
               onPressed: () =>
                   Navigator.pop(ctx, _customCategoryCtrl.text.trim()),
-              child: const Text('Thêm')),
+              child: const Text('Add')),
         ],
       ),
     );
@@ -144,14 +144,14 @@ class _AddScreenState extends State<AddScreen> {
     final isEdit = widget.editItem != null;
     final allCategories = [
       ...kCategories,
-      if (!kCategories.contains(_category) && _category != 'Tổng hợp')
+      if (!kCategories.contains(_category) && _category != 'General')
         _category,
     ];
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text(isEdit ? 'Sửa từ' : 'Thêm từ mới'),
+        title: Text(isEdit ? 'Edit' : 'Add Word'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
@@ -164,14 +164,14 @@ class _AddScreenState extends State<AddScreen> {
               OutlinedButton.icon(
                 onPressed: _pasteFromClipboard,
                 icon: const Icon(Icons.content_paste),
-                label: const Text('Dán từ Clipboard'),
+                label: const Text('Paste from Clipboard'),
                 style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12)),
               ),
             if (!isEdit) const SizedBox(height: 16),
 
             // Type selector
-            const _Label('Loại'),
+            const _Label('Type'),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -189,7 +189,7 @@ class _AddScreenState extends State<AddScreen> {
             const SizedBox(height: 16),
 
             // Category selector
-            const _Label('Chủ đề'),
+            const _Label('Topic'),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -207,7 +207,7 @@ class _AddScreenState extends State<AddScreen> {
                       ),
                     )),
                 ActionChip(
-                  label: const Text('+ Thêm chủ đề'),
+                  label: const Text('+ Add topic'),
                   onPressed: _addCustomCategory,
                   backgroundColor: Colors.grey.shade100,
                 ),
@@ -215,9 +215,8 @@ class _AddScreenState extends State<AddScreen> {
             ),
             const SizedBox(height: 16),
 
-            // IPA field — chỉ hiện khi type là word
             if (_type == 'word') ...[
-              const _Label('IPA (cách đọc)'),
+              const _Label('IPA (pronunciation)'),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _ipaCtrl,
@@ -244,7 +243,7 @@ class _AddScreenState extends State<AddScreen> {
                       size: 20,
                       color: Colors.indigo.shade400,
                     ),
-                    tooltip: 'Bảng ký hiệu IPA',
+                    tooltip: 'IPA symbols',
                     onPressed: () =>
                         setState(() => _showIpaPicker = !_showIpaPicker),
                   ),
@@ -259,33 +258,33 @@ class _AddScreenState extends State<AddScreen> {
 
             _Field(
               controller: _contentCtrl,
-              label: 'Từ / Cụm từ / Câu *',
-              hint: 'Nhập hoặc dán nội dung cần lưu',
+              label: 'Word / Phrase / Sentence *',
+              hint: 'Enter or paste content to save',
               maxLines: 2,
               validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'Không được để trống' : null,
+                  v == null || v.trim().isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 12),
 
             _Field(
               controller: _meaningCtrl,
-              label: 'Nghĩa (Tiếng Việt hoặc Anh)',
-              hint: 'Nghĩa của từ/cụm từ...',
+              label: 'Meaning',
+              hint: 'Meaning of the word/phrase...',
               maxLines: 3,
             ),
             const SizedBox(height: 12),
 
             _Field(
               controller: _exampleCtrl,
-              label: 'Ví dụ sử dụng',
-              hint: 'Ví dụ câu, ngữ cảnh...',
+              label: 'Example',
+              hint: 'Example sentence, context...',
               maxLines: 4,
             ),
             const SizedBox(height: 12),
 
             _Field(
               controller: _videoCtrl,
-              label: 'Link Video (YouTube, v.v.)',
+              label: 'Video Link (YouTube, etc.)',
               hint: 'https://youtube.com/...',
               keyboardType: TextInputType.url,
             ),
@@ -293,14 +292,14 @@ class _AddScreenState extends State<AddScreen> {
 
             _Field(
               controller: _sourceCtrl,
-              label: 'Nguồn',
-              hint: 'Tên tài liệu, video, website...',
+              label: 'Source',
+              hint: 'Document name, video, website...',
             ),
             const SizedBox(height: 12),
 
             _Field(
               controller: _audioCtrl,
-              label: 'Link âm thanh (URL)',
+              label: 'Audio URL',
               hint: 'https://dictionary.cambridge.org/...',
               keyboardType: TextInputType.url,
             ),
@@ -308,7 +307,7 @@ class _AddScreenState extends State<AddScreen> {
 
             _Field(
               controller: _imageCtrl,
-              label: 'Link hình ảnh (URL)',
+              label: 'Image URL',
               hint: 'https://example.com/image.jpg',
               keyboardType: TextInputType.url,
             ),
@@ -329,7 +328,7 @@ class _AddScreenState extends State<AddScreen> {
                       width: 20,
                       child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2))
-                  : Text(isEdit ? 'Cập nhật' : 'Lưu',
+                  : Text(isEdit ? 'Update' : 'Save',
                       style: const TextStyle(fontSize: 16)),
             ),
           ],
@@ -383,7 +382,7 @@ class _IpaPickerPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Nhấn ký hiệu để chèn',
+          Text('Tap a symbol to insert',
               style: TextStyle(fontSize: 11, color: Colors.indigo.shade400)),
           const SizedBox(height: 8),
           Wrap(

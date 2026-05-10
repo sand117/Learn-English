@@ -30,23 +30,23 @@ class SrsService {
   }
 
   static String nextReviewText(VocabularyItem item) {
-    if (item.nextReview == null) return 'Ôn ngay';
+    if (item.nextReview == null) return 'Due now';
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final reviewDay = DateTime(
         item.nextReview!.year, item.nextReview!.month, item.nextReview!.day);
     final diff = reviewDay.difference(today).inDays;
-    if (diff <= 0) return 'Hôm nay';
-    if (diff == 1) return 'Ngày mai';
-    if (diff < 7) return '$diff ngày nữa';
-    if (diff < 30) return '${(diff / 7).ceil()} tuần nữa';
-    return '${(diff / 30).ceil()} tháng nữa';
+    if (diff <= 0) return 'Today';
+    if (diff == 1) return 'Tomorrow';
+    if (diff < 7) return 'In $diff days';
+    if (diff < 30) return 'In ${(diff / 7).ceil()} week(s)';
+    return 'In ${(diff / 30).ceil()} month(s)';
   }
 
   static const Map<String, int> qualityMap = {
-    'Lại': 0,
-    'Khó': 3,
-    'Tốt': 4,
-    'Dễ': 5,
+    'Again': 0,
+    'Hard': 3,
+    'Good': 4,
+    'Easy': 5,
   };
 }

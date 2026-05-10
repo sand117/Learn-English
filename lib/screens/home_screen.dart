@@ -25,11 +25,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const _types = ['all', 'word', 'phrase', 'idiom', 'sentence'];
   static const _typeLabels = {
-    'all': 'Tất cả',
-    'word': 'Từ',
-    'phrase': 'Cụm từ',
+    'all': 'All',
+    'word': 'Word',
+    'phrase': 'Phrase',
     'idiom': 'Idiom',
-    'sentence': 'Câu',
+    'sentence': 'Sentence',
   };
 
   List<VocabularyItem> _filter(List<VocabularyItem> items) {
@@ -100,10 +100,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           }
                           return Row(
                             children: [
-                              Expanded(child: _StatItem('Tổng', '${all.length}', Icons.library_books, Colors.white)),
-                              Expanded(child: _StatItem('Cần ôn', '$due', Icons.schedule, due > 0 ? Colors.orangeAccent : Colors.white70)),
-                              Expanded(child: _StatItem('Đã thuộc', '$mastered', Icons.check_circle, Colors.greenAccent)),
-                              Expanded(child: _StatItem('Yêu thích', '$favorites', Icons.star, Colors.amberAccent)),
+                              Expanded(child: _StatItem('Total', '${all.length}', Icons.library_books, Colors.white)),
+                              Expanded(child: _StatItem('Due', '$due', Icons.schedule, due > 0 ? Colors.orangeAccent : Colors.white70)),
+                              Expanded(child: _StatItem('Mastered', '$mastered', Icons.check_circle, Colors.greenAccent)),
+                              Expanded(child: _StatItem('Favorites', '$favorites', Icons.star, Colors.amberAccent)),
                             ],
                           );
                         },
@@ -117,8 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? Icons.star
                         : Icons.star_border),
                     tooltip: _showFavoritesOnly
-                        ? 'Đang lọc yêu thích'
-                        : 'Chỉ yêu thích',
+                        ? 'Favorites only'
+                        : 'Favorites',
                     color: _showFavoritesOnly ? Colors.amber : Colors.white,
                     onPressed: () =>
                         setState(() => _showFavoritesOnly = !_showFavoritesOnly),
@@ -128,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? Icons.visibility
                         : Icons.visibility_off),
                     tooltip:
-                        _showMastered ? 'Ẩn đã thuộc' : 'Hiện đã thuộc',
+                        _showMastered ? 'Hide mastered' : 'Show mastered',
                     onPressed: () =>
                         setState(() => _showMastered = !_showMastered),
                   ),
@@ -147,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: () => _startReview(context, due),
                           icon: const Icon(Icons.play_arrow),
                           label: Text(
-                            'Ôn tập ngay — ${(_sessionSize == 0 || _sessionSize > due) ? due : _sessionSize} từ',
+                            'Review now — ${(_sessionSize == 0 || _sessionSize > due) ? due : _sessionSize} cards',
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
@@ -161,13 +161,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Text('Số từ/lần:',
+                            Text('Cards/session:',
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade600)),
                             const SizedBox(width: 8),
                             ...[5, 10, 20, 0].map((n) {
-                              final label = n == 0 ? 'Tất cả' : '$n';
+                              final label = n == 0 ? 'All' : '$n';
                               final selected = _sessionSize == n;
                               return Padding(
                                 padding: const EdgeInsets.only(right: 6),
@@ -205,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: 'Tìm kiếm từ...',
+                      hintText: 'Search...',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _search.isNotEmpty
                           ? IconButton(
@@ -263,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemCount: categories.length,
                     itemBuilder: (_, i) {
                       final c = categories[i];
-                      final label = c == 'all' ? 'Tất cả chủ đề' : c;
+                      final label = c == 'all' ? 'All topics' : c;
                       final hasItems = c == 'all' ||
                           usedCats.contains(c);
                       return Padding(
@@ -301,8 +301,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 16),
                             Text(
                               all.isEmpty
-                                  ? 'Chưa có từ nào\nNhấn + để thêm từ mới'
-                                  : 'Không tìm thấy từ nào',
+                                  ? 'No words yet\nTap + to add a new word'
+                                  : 'No words found',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: Colors.grey.shade500, height: 1.6),
@@ -336,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: () => Navigator.push(context,
             MaterialPageRoute(builder: (_) => const AddScreen())),
         icon: const Icon(Icons.add),
-        label: const Text('Thêm từ'),
+        label: const Text('Add word'),
       ),
     );
   }

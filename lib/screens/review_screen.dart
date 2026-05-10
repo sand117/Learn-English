@@ -68,11 +68,11 @@ class _ReviewScreenState extends State<ReviewScreen>
   @override
   Widget build(BuildContext context) {
     if (_queue.isEmpty) {
-      return _DoneScreen(message: 'Không có từ nào cần ôn hôm nay!');
+      return _DoneScreen(message: 'Nothing to review today!');
     }
     if (_current == null) {
       return _DoneScreen(
-          message: 'Hoàn thành! Đã ôn $_reviewed/${_queue.length} từ.');
+          message: 'Done! Reviewed $_reviewed/${_queue.length} cards.');
     }
 
     final item = _current!;
@@ -81,7 +81,7 @@ class _ReviewScreenState extends State<ReviewScreen>
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text('Ôn tập — ${_currentIndex + 1}/${_queue.length}'),
+        title: Text('Review — ${_currentIndex + 1}/${_queue.length}'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         bottom: PreferredSize(
@@ -124,7 +124,7 @@ class _ReviewScreenState extends State<ReviewScreen>
           if (!_flipped)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: Text('Chạm vào thẻ để xem đáp án',
+              child: Text('Tap the card to reveal',
                   style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
             ),
 
@@ -134,7 +134,7 @@ class _ReviewScreenState extends State<ReviewScreen>
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               child: Column(
                 children: [
-                  Text('Bạn nhớ được mức nào?',
+                  Text('How well did you remember?',
                       style: TextStyle(
                           color: Colors.grey.shade600, fontSize: 13)),
                   const SizedBox(height: 12),
@@ -284,14 +284,14 @@ class _CardBack extends StatelessWidget {
                     TextButton.icon(
                       onPressed: () => launchUrl(Uri.parse(item.audioUrl)),
                       icon: const Icon(Icons.volume_up),
-                      label: const Text('Nghe phát âm'),
+                      label: const Text('Listen'),
                     ),
                   if (item.videoLink.isNotEmpty)
                     TextButton.icon(
                       onPressed: () =>
                           launchUrl(Uri.parse(item.videoLink)),
                       icon: const Icon(Icons.play_circle_outline),
-                      label: const Text('Xem video'),
+                      label: const Text('Watch video'),
                     ),
                 ],
               ),
@@ -309,10 +309,10 @@ class _RatingButton extends StatelessWidget {
   const _RatingButton({required this.label, required this.onTap});
 
   static const _colors = {
-    'Lại': Color(0xFFE53935),
-    'Khó': Color(0xFFFF7043),
-    'Tốt': Color(0xFF43A047),
-    'Dễ': Color(0xFF1E88E5),
+    'Again': Color(0xFFE53935),
+    'Hard': Color(0xFFFF7043),
+    'Good': Color(0xFF43A047),
+    'Easy': Color(0xFF1E88E5),
   };
 
   @override
@@ -337,10 +337,10 @@ class _TypeChip extends StatelessWidget {
   const _TypeChip({required this.type});
 
   static const _labels = {
-    'word': 'Từ',
-    'phrase': 'Cụm từ',
+    'word': 'Word',
+    'phrase': 'Phrase',
     'idiom': 'Idiom',
-    'sentence': 'Câu',
+    'sentence': 'Sentence',
   };
 
   @override
@@ -390,7 +390,7 @@ class _DoneScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Về trang chính'),
+                child: const Text('Back to Home'),
               ),
             ],
           ),

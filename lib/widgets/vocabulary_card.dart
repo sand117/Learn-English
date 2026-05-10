@@ -11,10 +11,10 @@ const _typeColor = {
 };
 
 const _typeLabel = {
-  'word': 'Từ',
-  'phrase': 'Cụm từ',
+  'word': 'Word',
+  'phrase': 'Phrase',
   'idiom': 'Idiom',
-  'sentence': 'Câu',
+  'sentence': 'Sentence',
 };
 
 class VocabularyCard extends StatelessWidget {

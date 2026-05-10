@@ -15,7 +15,8 @@ class ReviewScreen extends StatefulWidget {
 
 class _ReviewScreenState extends State<ReviewScreen>
     with SingleTickerProviderStateMixin {
-  late List<VocabularyItem> _queue;
+  List<VocabularyItem> _queue = [];
+  bool _loaded = false;
   int _currentIndex = 0;
   bool _flipped = false;
   int _reviewed = 0;
@@ -26,14 +27,20 @@ class _ReviewScreenState extends State<ReviewScreen>
   @override
   void initState() {
     super.initState();
-    _queue = StorageService.getDueItems()..shuffle(Random());
-    if (widget.maxCount != null && widget.maxCount! < _queue.length) {
-      _queue = _queue.take(widget.maxCount!).toList();
-    }
     _flipCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 350));
     _flipAnim = Tween<double>(begin: 0, end: 1).animate(
         CurvedAnimation(parent: _flipCtrl, curve: Curves.easeInOut));
+    _loadQueue();
+  }
+
+  Future<void> _loadQueue() async {
+    final items = await StorageService.getDueItems();
+    items.shuffle(Random());
+    if (widget.maxCount != null && widget.maxCount! < items.length) {
+      items.removeRange(widget.maxCount!, items.length);
+    }
+    if (mounted) setState(() { _queue = items; _loaded = true; });
   }
 
   @override
@@ -67,6 +74,9 @@ class _ReviewScreenState extends State<ReviewScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (!_loaded) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (_queue.isEmpty) {
       return _DoneScreen(message: 'Nothing to review today!');
     }
@@ -97,7 +107,6 @@ class _ReviewScreenState extends State<ReviewScreen>
         children: [
           const SizedBox(height: 24),
 
-          // Flashcard
           Expanded(
             child: GestureDetector(
               onTap: _flip,
@@ -120,7 +129,6 @@ class _ReviewScreenState extends State<ReviewScreen>
             ),
           ),
 
-          // Tap hint
           if (!_flipped)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -128,22 +136,19 @@ class _ReviewScreenState extends State<ReviewScreen>
                   style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
             ),
 
-          // Rating buttons
           if (_flipped)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               child: Column(
                 children: [
                   Text('How well did you remember?',
-                      style: TextStyle(
-                          color: Colors.grey.shade600, fontSize: 13)),
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                   const SizedBox(height: 12),
                   Row(
                     children: SrsService.qualityMap.keys
                         .map((label) => Expanded(
                               child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
                                 child: _RatingButton(
                                     label: label, onTap: () => _rate(label)),
                               ),
@@ -182,28 +187,23 @@ class _CardFront extends StatelessWidget {
                 Text(
                   item.content,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 28, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
                 if (item.ipa.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    '/${item.ipa}/',
-                    style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.indigo.shade300,
-                        letterSpacing: 0.5),
-                  ),
+                  Text('/${item.ipa}/',
+                      style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.indigo.shade300,
+                          letterSpacing: 0.5)),
                 ],
                 if (item.source.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Text('📖 ${item.source}',
-                      style: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 12)),
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
                 ],
                 const Spacer(),
-                Icon(Icons.touch_app,
-                    color: Colors.grey.shade300, size: 32),
+                Icon(Icons.touch_app, color: Colors.grey.shade300, size: 32),
               ],
             ),
           ),
@@ -288,8 +288,7 @@ class _CardBack extends StatelessWidget {
                     ),
                   if (item.videoLink.isNotEmpty)
                     TextButton.icon(
-                      onPressed: () =>
-                          launchUrl(Uri.parse(item.videoLink)),
+                      onPressed: () => launchUrl(Uri.parse(item.videoLink)),
                       icon: const Icon(Icons.play_circle_outline),
                       label: const Text('Watch video'),
                     ),
@@ -379,14 +378,12 @@ class _DoneScreen extends StatelessWidget {
               const SizedBox(height: 24),
               Text(message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.bold)),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 32, vertical: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),

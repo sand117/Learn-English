@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import '../models/vocabulary_item.dart';
 import '../services/storage_service.dart';
+import '../services/auth_service.dart';
 import '../utils/constants.dart';
 import '../widgets/vocabulary_card.dart';
 import 'add_screen.dart';
@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _categoryFilter = 'all';
   bool _showMastered = false;
   bool _showFavoritesOnly = false;
-  int _sessionSize = 0; // 0 = tất cả
+  int _sessionSize = 0;
 
   static const _types = ['all', 'word', 'phrase', 'idiom', 'sentence'];
   static const _typeLabels = {
@@ -56,23 +56,50 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _confirmSignOut(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text('Your data is saved in the cloud and will be available when you sign back in.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await AuthService.signOut();
+            },
+            child: const Text('Sign out', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      body: ValueListenableBuilder(
-        valueListenable: Hive.box('vocabulary').listenable(),
-        builder: (context, _, __) {
-          final all = StorageService.getAll();
-          final due = StorageService.dueCount;
-          final mastered = StorageService.masteredCount;
+      body: StreamBuilder<List<VocabularyItem>>(
+        stream: StorageService.stream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final all = snapshot.data ?? [];
+          final dueItems = all.where((i) => i.isDueForReview && !i.mastered).toList();
+          final due = dueItems.length;
+          final mastered = all.where((i) => i.mastered).length;
           final favorites = all.where((i) => i.favorite).length;
           final filtered = _filter(all);
 
-          // Hiện tất cả kCategories + custom categories
-          final usedCats = StorageService.getCategories().toSet();
+          final usedCats = all.map((i) => i.category).toSet();
           final allCats = [
             ...kCategories,
             ...usedCats.where((c) => !kCategories.contains(c)),
@@ -81,7 +108,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return CustomScrollView(
             slivers: [
-              // App bar — title tách riêng tránh đè stats
               SliverAppBar(
                 pinned: true,
                 expandedHeight: 140,
@@ -113,29 +139,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 actions: [
                   IconButton(
-                    icon: Icon(_showFavoritesOnly
-                        ? Icons.star
-                        : Icons.star_border),
-                    tooltip: _showFavoritesOnly
-                        ? 'Favorites only'
-                        : 'Favorites',
+                    icon: Icon(_showFavoritesOnly ? Icons.star : Icons.star_border),
+                    tooltip: _showFavoritesOnly ? 'Favorites only' : 'Favorites',
                     color: _showFavoritesOnly ? Colors.amber : Colors.white,
-                    onPressed: () =>
-                        setState(() => _showFavoritesOnly = !_showFavoritesOnly),
+                    onPressed: () => setState(() => _showFavoritesOnly = !_showFavoritesOnly),
                   ),
                   IconButton(
-                    icon: Icon(_showMastered
-                        ? Icons.visibility
-                        : Icons.visibility_off),
-                    tooltip:
-                        _showMastered ? 'Hide mastered' : 'Show mastered',
-                    onPressed: () =>
-                        setState(() => _showMastered = !_showMastered),
+                    icon: Icon(_showMastered ? Icons.visibility : Icons.visibility_off),
+                    tooltip: _showMastered ? 'Hide mastered' : 'Show mastered',
+                    onPressed: () => setState(() => _showMastered = !_showMastered),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    tooltip: 'Sign out',
+                    onPressed: () => _confirmSignOut(context),
                   ),
                 ],
               ),
 
-              // Review banner + session size
+              // Review banner
               if (due > 0)
                 SliverToBoxAdapter(
                   child: Padding(
@@ -152,8 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                             foregroundColor: Colors.white,
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
                           ),
@@ -162,9 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           children: [
                             Text('Cards/session:',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600)),
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                             const SizedBox(width: 8),
                             ...[5, 10, 20, 0].map((n) {
                               final label = n == 0 ? 'All' : '$n';
@@ -174,21 +193,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: ChoiceChip(
                                   label: Text(label),
                                   selected: selected,
-                                  onSelected: (_) =>
-                                      setState(() => _sessionSize = n),
-                                  selectedColor:
-                                      Colors.orange.shade100,
+                                  onSelected: (_) => setState(() => _sessionSize = n),
+                                  selectedColor: Colors.orange.shade100,
                                   labelStyle: TextStyle(
                                     fontSize: 12,
-                                    fontWeight: selected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: selected
-                                        ? Colors.orange.shade800
-                                        : Colors.grey.shade700,
+                                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                                    color: selected ? Colors.orange.shade800 : Colors.grey.shade700,
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
                                 ),
                               );
                             }),
@@ -210,23 +222,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       suffixIcon: _search.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear),
-                              onPressed: () =>
-                                  setState(() => _search = ''))
+                              onPressed: () => setState(() => _search = ''))
                           : null,
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 0),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     ),
                     onChanged: (v) => setState(() => _search = v),
                   ),
                 ),
               ),
 
-              // Type filter — tap lại để deselect
+              // Type filter
               SliverToBoxAdapter(
                 child: SizedBox(
                   height: 48,
@@ -243,9 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           selected: _typeFilter == t,
                           onSelected: (selected) => setState(
                               () => _typeFilter = selected ? t : 'all'),
-                          selectedColor: Theme.of(context)
-                              .colorScheme
-                              .primaryContainer,
+                          selectedColor: Theme.of(context).colorScheme.primaryContainer,
                         ),
                       );
                     },
@@ -253,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Category filter — tất cả kCategories, tap lại để deselect
+              // Category filter
               SliverToBoxAdapter(
                 child: SizedBox(
                   height: 48,
@@ -264,8 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (_, i) {
                       final c = categories[i];
                       final label = c == 'all' ? 'All topics' : c;
-                      final hasItems = c == 'all' ||
-                          usedCats.contains(c);
+                      final hasItems = c == 'all' || usedCats.contains(c);
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: FilterChip(
@@ -320,8 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) =>
-                                      DetailScreen(item: filtered[i])),
+                                  builder: (_) => DetailScreen(item: filtered[i])),
                             ),
                           ),
                           childCount: filtered.length,

@@ -1,50 +1,58 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/vocabulary_item.dart';
+import 'auth_service.dart';
 
 class StorageService {
-  static const _boxName = 'vocabulary';
+  static CollectionReference<Map<String, dynamic>> get _col =>
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(AuthService.uid)
+          .collection('vocabulary');
 
-  static Box get _box => Hive.box(_boxName);
+  static Stream<List<VocabularyItem>> get stream => _col
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snap) => snap.docs
+          .map((d) => VocabularyItem.fromMap({...d.data(), 'id': d.id}))
+          .toList());
 
-  static List<VocabularyItem> getAll() {
-    return _box.values
-        .map((e) => VocabularyItem.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  static Future<List<VocabularyItem>> getAll() async {
+    final snap = await _col.orderBy('createdAt', descending: true).get();
+    return snap.docs
+        .map((d) => VocabularyItem.fromMap({...d.data(), 'id': d.id}))
+        .toList();
   }
 
-  static List<VocabularyItem> getDueItems() {
-    return getAll().where((item) => item.isDueForReview).toList();
+  static Future<List<VocabularyItem>> getDueItems() async {
+    final all = await getAll();
+    return all.where((item) => item.isDueForReview).toList();
   }
 
   static Future<void> save(VocabularyItem item) async {
-    await _box.put(item.id, item.toMap());
+    final data = item.toMap();
+    // Store createdAt as Timestamp for Firestore ordering
+    data['createdAt'] = item.createdAt.millisecondsSinceEpoch;
+    await _col.doc(item.id).set(data);
   }
 
   static Future<void> delete(String id) async {
-    await _box.delete(id);
+    await _col.doc(id).delete();
   }
 
-  static int get totalCount => _box.length;
+  static Future<int> get totalCount async => (await _col.count().get()).count ?? 0;
 
-  static int get masteredCount =>
-      getAll().where((item) => item.mastered).length;
+  static Future<int> get masteredCount async {
+    final snap = await _col.where('mastered', isEqualTo: true).count().get();
+    return snap.count ?? 0;
+  }
 
-  static int get dueCount => getDueItems().length;
+  static Future<int> getDueCount() async =>
+      (await getDueItems()).length;
 
-  static List<String> getCategories() {
-    final cats = getAll().map((i) => i.category).toSet().toList();
+  static Future<List<String>> getCategories() async {
+    final all = await getAll();
+    final cats = all.map((i) => i.category).toSet().toList();
     cats.sort();
     return cats;
-  }
-
-  static Map<String, int> get typeCounts {
-    final items = getAll();
-    return {
-      'word': items.where((i) => i.type == 'word').length,
-      'phrase': items.where((i) => i.type == 'phrase').length,
-      'idiom': items.where((i) => i.type == 'idiom').length,
-      'sentence': items.where((i) => i.type == 'sentence').length,
-    };
   }
 }

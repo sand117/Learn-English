@@ -7,38 +7,8 @@ import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  Object? initError;
-  try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  } catch (e) {
-    initError = e;
-  }
-
-  runApp(initError != null ? _ErrorApp(error: initError) : const LearnEnglishApp());
-}
-
-class _ErrorApp extends StatelessWidget {
-  final Object error;
-  const _ErrorApp({required this.error});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: SelectableText(
-              'Init error:\n$error',
-              style: const TextStyle(color: Colors.red, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const LearnEnglishApp());
 }
 
 class LearnEnglishApp extends StatelessWidget {

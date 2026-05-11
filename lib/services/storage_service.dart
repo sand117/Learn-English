@@ -29,10 +29,7 @@ class StorageService {
   }
 
   static Future<void> save(VocabularyItem item) async {
-    final data = item.toMap();
-    // Store createdAt as Timestamp for Firestore ordering
-    data['createdAt'] = item.createdAt.millisecondsSinceEpoch;
-    await _col.doc(item.id).set(data);
+    await _col.doc(item.id).set(item.toMap());
   }
 
   static Future<void> delete(String id) async {

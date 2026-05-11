@@ -74,6 +74,12 @@ class VocabularyItem {
         'favorite': favorite,
       };
 
+  static DateTime _parseDate(dynamic v) {
+    if (v is String) return DateTime.parse(v);
+    if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
+    return DateTime.now();
+  }
+
   factory VocabularyItem.fromMap(Map<String, dynamic> map) => VocabularyItem(
         id: map['id'] as String? ?? '',
         content: map['content'] as String? ?? '',
@@ -86,7 +92,7 @@ class VocabularyItem {
         ipa: map['ipa'] as String? ?? '',
         audioUrl: map['audioUrl'] as String? ?? '',
         imageUrl: map['imageUrl'] as String? ?? '',
-        createdAt: DateTime.parse(map['createdAt'] as String),
+        createdAt: _parseDate(map['createdAt']),
         easeFactor: (map['easeFactor'] as num?)?.toDouble() ?? 2.5,
         interval: map['interval'] as int? ?? 1,
         repetitions: map['repetitions'] as int? ?? 0,
